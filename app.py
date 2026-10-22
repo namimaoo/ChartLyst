@@ -2,10 +2,10 @@ import pandas as pd
 import streamlit as st
 import plotly.express as px
 
-# oage
-st.set_page_config(page_title="ChartLyst - Data Interpreter", layout="wide")
+# main page title
+st.set_page_config(page_title="ChartLyst - Interactive Studio", layout="wide")
 
-
+# style
 st.markdown("""
     <style>
     @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap');
@@ -29,11 +29,19 @@ st.markdown("""
     </style>
 """, unsafe_allow_html=True)
 
-
+# function
 st.markdown('<div class="main-title">ChartLyst Studio</div>', unsafe_allow_html=True)
 st.markdown('<div class="subtitle">Create, customize, and export interactive charts from your own data in seconds.</div>', unsafe_allow_html=True)
 
-# main function
+#table manual
+if "manual_df" not in st.session_state:
+    st.session_state.manual_df = pd.DataFrame({
+        "Category": ["Marketing", "Sales", "Development", "Design"],
+        "Budget": [5000, 12000, 18000, 7500],
+        "Quarter": ["Q1", "Q1", "Q1", "Q1"]
+    })
+
+# Step 1: Input Data Front & Center
 with st.container(border=True):
     st.markdown("### Step 1: Add Your Data")
     
@@ -63,15 +71,37 @@ with st.container(border=True):
                 st.error(f"Error reading file: {e}")
 
     elif input_method == "Type / Edit Table Manually":
-        st.write("Edit the table below directly or click the `+` row at the bottom to add new entries:")
-        # making table
-        starter_data = pd.DataFrame({
-            "Category": ["Marketing", "Sales", "Development", "Design"],
-            "Budget": [5000, 12000, 18000, 7500],
-            "Quarter": ["Q1", "Q1", "Q1", "Q1"]
-        })
-        # excel integretion
-        df = st.data_editor(starter_data, num_rows="dynamic", use_container_width=True)
+        st.write("Edit cells directly, click the bottom `+` row to add rows, or use the bar below to add custom columns:")
+        
+        #column
+        col_bar1, col_bar2, col_bar3, col_bar4 = st.columns([2, 1, 1, 1])
+        with col_bar1:
+            new_col_name = st.text_input("New Column Name", placeholder="e.g. Profit, Year, Region", label_visibility="collapsed")
+        with col_bar2:
+            new_col_type = st.selectbox("Type", ["Number", "Text"], label_visibility="collapsed")
+        with col_bar3:
+            if st.button("Add Column", use_container_width=True):
+                col_name_clean = new_col_name.strip()
+                if col_name_clean and col_name_clean not in st.session_state.manual_df.columns:
+                    default_value = 0 if new_col_type == "Number" else ""
+                    st.session_state.manual_df[col_name_clean] = default_value
+                    st.rerun()
+        with col_bar4:
+            if st.button("Reset Table", use_container_width=True):
+                st.session_state.manual_df = pd.DataFrame({
+                    "Item": ["A", "B", "C"],
+                    "Value": [10, 20, 30]
+                })
+                st.rerun()
+
+        # sss
+        edited_table = st.data_editor(
+            st.session_state.manual_df, 
+            num_rows="dynamic", 
+            use_container_width=True
+        )
+        st.session_state.manual_df = edited_table
+        df = edited_table
 
     elif input_method == "Use Demo Data":
         df = pd.DataFrame({
@@ -81,13 +111,13 @@ with st.container(border=True):
         })
         st.info("Loaded demo dataset.")
 
-
+# custom chart
 if df is not None and not df.empty:
     with st.container(border=True):
         st.markdown("### Step 2: Build & Customize Your Chart")
 
-        
-        numeric_cols = df.select_dtypes(include=['float64', 'int64']).columns.tolist()
+        # colum again
+        numeric_cols = df.select_dtypes(include=['float64', 'int64', 'int32', 'float32']).columns.tolist()
         all_cols = df.columns.tolist()
 
         c1, c2, c3, c4 = st.columns(4)
@@ -106,7 +136,7 @@ if df is not None and not df.empty:
                 ["Pastel", "Prism", "Bold", "Vivid", "Sunset"]
             )
 
-        # color
+        #color
         color_maps = {
             "Pastel": px.colors.qualitative.Pastel,
             "Prism": px.colors.qualitative.Prism,
@@ -116,7 +146,7 @@ if df is not None and not df.empty:
         }
         selected_palette = color_maps[color_choice]
 
-        # charts
+        #chart
         fig = None
         if chart_type == "Bar Chart":
             fig = px.bar(df, x=x_axis, y=y_axis, color=x_axis, color_discrete_sequence=selected_palette, title=f"{y_axis} by {x_axis}")
@@ -139,9 +169,9 @@ if df is not None and not df.empty:
             )
             st.plotly_chart(fig, use_container_width=True)
 
-    # summary
-    with st.expander("View Data Table & Health Breakdown"):
-        t1, t2 = st.tabs(["Spreadsheet View", "Statistical Summary"])
+    # finallllll
+    with st.expander("View Data Table & Statistics"):
+        t1, t2 = st.tabs(["Full Table", "Statistical Summary"])
         with t1:
             st.dataframe(df, use_container_width=True)
         with t2:
